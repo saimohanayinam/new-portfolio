@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom';
-import { Menu, X, Github, Linkedin } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, Github, Linkedin, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
-import { getProfile } from '../lib/firebase';
+import { getUserProfile, logoutUser } from '../lib/firebase';
+import { useAuthStore } from '../lib/store';
+import { toast } from 'sonner';
 
 interface Profile {
   avatar: string;
@@ -15,6 +17,8 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { user, setUser } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,14 +31,27 @@ export default function Navbar() {
 
   useEffect(() => {
     async function loadProfile() {
-      const { data, error } = await getProfile();
-      if (!error && data) {
-        setProfile(data as Profile);
+      if (user) {
+        const { data, error } = await getUserProfile(user.uid);
+        if (!error && data) {
+          setProfile(data as Profile);
+        }
       }
       setLoading(false);
     }
     loadProfile();
-  }, []);
+  }, [user]);
+
+  const handleLogout = async () => {
+    const { error } = await logoutUser();
+    if (error) {
+      toast.error('Failed to log out');
+    } else {
+      setUser(null);
+      navigate('/login');
+      toast.success('Logged out successfully');
+    }
+  };
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
@@ -74,12 +91,14 @@ export default function Navbar() {
             >
               Blog
             </Link>
-            <Link 
-              to="/dashboard" 
-              className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              Dashboard
-            </Link>
+            {user && (
+              <Link 
+                to="/dashboard" 
+                className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                Dashboard
+              </Link>
+            )}
             <div className="flex items-center space-x-4">
               <ThemeToggle />
               <a 
@@ -98,6 +117,14 @@ export default function Navbar() {
               >
                 <Linkedin className="w-5 h-5" />
               </a>
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -133,13 +160,15 @@ export default function Navbar() {
                 >
                   Blog
                 </Link>
-                <Link 
-                  to="/dashboard" 
-                  className="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                {user && (
+                  <Link 
+                    to="/dashboard" 
+                    className="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <div className="flex items-center space-x-4">
                   <ThemeToggle />
                   <a 
@@ -158,6 +187,14 @@ export default function Navbar() {
                   >
                     <Linkedin className="w-5 h-5" />
                   </a>
+                  {user && (
+                    <button
+                      onClick={handleLogout}
+                      className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { LogIn, Mail, Lock } from 'lucide-react';
+import { loginUser } from '../lib/firebase';
+import { useAuthStore } from '../lib/store';
 
 interface LoginForm {
   email: string;
@@ -12,17 +14,21 @@ interface LoginForm {
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const setUser = useAuthStore(state => state.setUser);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      // TODO: Implement Firebase authentication
-      console.log('Login data:', data);
-      toast.success('Logged in successfully!');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error('Failed to log in');
+      const { user, error } = await loginUser(data.email, data.password);
+      if (error) throw new Error(error);
+      if (user) {
+        setUser(user);
+        toast.success('Logged in successfully!');
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to log in');
     } finally {
       setIsLoading(false);
     }

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Plus, Image as ImageIcon, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import RichTextEditor from '../components/RichTextEditor';
-import { profile, services, blogPosts, projects } from '../data/dummy';
+import { useAuthStore } from '../lib/store';
+import { getUserProfile, updateUserProfile } from '../lib/firebase';
 
 interface BlogPostForm {
   title: string;
@@ -39,46 +40,58 @@ interface ServicesForm {
   }[];
 }
 
+interface UserProfile {
+  name: string;
+  email: string;
+  bio: string;
+  location: string;
+  photoURL: string | null;
+  social: {
+    github: string;
+    linkedin: string;
+    twitter: string;
+  };
+}
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'profile' | 'posts' | 'projects' | 'services'>('profile');
   const [blogContent, setBlogContent] = useState('');
   const [projectContent, setProjectContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const user = useAuthStore(state => state.user);
   
-  const { register: registerBlog, handleSubmit: handleBlogSubmit, reset: resetBlog } = useForm<BlogPostForm>({
-    defaultValues: {
-      title: '',
-      content: ''
+  const { register: registerBlog, handleSubmit: handleBlogSubmit, reset: resetBlog } = useForm<BlogPostForm>();
+  const { register: registerProject, handleSubmit: handleProjectSubmit, reset: resetProject } = useForm<ProjectForm>();
+  const { register: registerProfile, handleSubmit: handleProfileSubmit, setValue: setProfileValue } = useForm<ProfileForm>();
+  const { register: registerServices, handleSubmit: handleServicesSubmit } = useForm<ServicesForm>();
+
+  useEffect(() => {
+    async function loadUserProfile() {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        const { data, error } = await getUserProfile(user.uid);
+        if (error) throw new Error(error);
+        if (data) {
+          const profile = data as UserProfile;
+          setProfileValue('name', profile.name);
+          setProfileValue('email', profile.email);
+          setProfileValue('bio', profile.bio || '');
+          setProfileValue('location', profile.location || '');
+          setProfileValue('github', profile.social.github || '');
+          setProfileValue('linkedin', profile.social.linkedin || '');
+          setProfileValue('twitter', profile.social.twitter || '');
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
     }
-  });
-  
-  const { register: registerProject, handleSubmit: handleProjectSubmit, reset: resetProject } = useForm<ProjectForm>({
-    defaultValues: {
-      title: '',
-      description: '',
-      content: '',
-      tags: ''
-    }
-  });
-  
-  const { register: registerProfile, handleSubmit: handleProfileSubmit } = useForm<ProfileForm>({
-    defaultValues: {
-      name: profile.name,
-      title: profile.title,
-      bio: profile.bio,
-      email: profile.email,
-      phone: profile.phone,
-      location: profile.location,
-      github: profile.social.github,
-      linkedin: profile.social.linkedin,
-      twitter: profile.social.twitter
-    }
-  });
-  
-  const { register: registerServices, handleSubmit: handleServicesSubmit } = useForm<ServicesForm>({
-    defaultValues: {
-      services: services
-    }
-  });
+
+    loadUserProfile();
+  }, [user, setProfileValue]);
 
   const onBlogSubmit = async (data: BlogPostForm) => {
     try {
@@ -87,15 +100,15 @@ export default function Dashboard() {
         content: blogContent,
         date: new Date().toISOString(),
         author: {
-          name: profile.name,
-          avatar: profile.avatar
+          name: user?.displayName || 'Anonymous',
+          avatar: user?.photoURL || ''
         }
       };
       console.log('New blog post:', newPost);
       toast.success('Blog post created successfully!');
       resetBlog();
       setBlogContent('');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to create blog post');
     }
   };
@@ -111,28 +124,57 @@ export default function Dashboard() {
       toast.success('Project created successfully!');
       resetProject();
       setProjectContent('');
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Failed to create project');
     }
   };
 
   const onProfileSubmit = async (data: ProfileForm) => {
+    if (!user) return;
+
     try {
-      console.log('Profile data:', data);
+      const profileData = {
+        name: data.name,
+        bio: data.bio,
+        location: data.location,
+        social: {
+          github: data.github,
+          linkedin: data.linkedin,
+          twitter: data.twitter
+        }
+      };
+
+      const { error } = await updateUserProfile(user.uid, profileData);
+      if (error) throw new Error(error);
+      
       toast.success('Profile updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update profile');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
     }
   };
 
   const onServicesSubmit = async (data: ServicesForm) => {
+    if (!user) return;
+
     try {
-      console.log('Services data:', data);
+      const { error } = await updateUserProfile(user.uid, {
+        services: data.services
+      });
+      if (error) throw new Error(error);
+
       toast.success('Services updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update services');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update services');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto mt-20">
@@ -316,7 +358,7 @@ export default function Dashboard() {
           <form onSubmit={handleServicesSubmit(onServicesSubmit)} className="space-y-6">
             <h2 className="text-2xl font-bold mb-6 dark:text-white">Services</h2>
             
-            {services.map((service, index) => (
+            {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="grid grid-cols-1 gap-4 p-4 border dark:border-gray-700 rounded-lg">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -325,7 +367,6 @@ export default function Dashboard() {
                   <input
                     type="text"
                     {...registerServices(`services.${index}.title` as any)}
-                    defaultValue={service.title}
                     className="input dark:bg-gray-700 dark:text-white"
                   />
                 </div>
@@ -335,7 +376,6 @@ export default function Dashboard() {
                   </label>
                   <textarea
                     {...registerServices(`services.${index}.description` as any)}
-                    defaultValue={service.description}
                     rows={2}
                     className="input dark:bg-gray-700 dark:text-white"
                   />

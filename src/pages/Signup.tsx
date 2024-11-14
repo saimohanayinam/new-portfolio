@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UserPlus, Mail, Lock, User } from 'lucide-react';
+import { registerUser } from '../lib/firebase';
+import { useAuthStore } from '../lib/store';
 
 interface SignupForm {
   name: string;
@@ -14,18 +16,22 @@ interface SignupForm {
 export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const setUser = useAuthStore(state => state.setUser);
   const { register, handleSubmit, watch, formState: { errors } } = useForm<SignupForm>();
   const password = watch('password');
 
   const onSubmit = async (data: SignupForm) => {
     setIsLoading(true);
     try {
-      // TODO: Implement Firebase authentication
-      console.log('Signup data:', data);
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error('Failed to create account');
+      const { user, error } = await registerUser(data.email, data.password, data.name);
+      if (error) throw new Error(error);
+      if (user) {
+        setUser(user);
+        toast.success('Account created successfully!');
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setIsLoading(false);
     }
