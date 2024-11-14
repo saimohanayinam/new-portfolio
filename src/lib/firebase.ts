@@ -35,26 +35,7 @@ export async function registerUser(email: string, password: string, name: string
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       name,
       email,
-      title: '',
-      bio: '',
-      phone: '',
-      location: '',
-      company: '',
-      website: '',
-      skills: [],
-      education: [],
-      experience: [],
-      languages: [],
-      certifications: [],
-      interests: [],
-      availability: 'full-time',
-      social: {
-        github: '',
-        linkedin: '',
-        twitter: '',
-        instagram: '',
-        youtube: ''
-      },
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -68,30 +49,6 @@ export async function registerUser(email: string, password: string, name: string
 export async function logoutUser() {
   try {
     await signOut(auth);
-    return { error: null };
-  } catch (error: any) {
-    return { error: error.message };
-  }
-}
-
-// User profile functions
-export async function getUserProfile(uid: string) {
-  try {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-    return { data: docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null, error: null };
-  } catch (error: any) {
-    return { data: null, error: error.message };
-  }
-}
-
-export async function updateUserProfile(uid: string, data: any) {
-  try {
-    const docRef = doc(db, 'users', uid);
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: serverTimestamp()
-    });
     return { error: null };
   } catch (error: any) {
     return { error: error.message };
@@ -127,43 +84,26 @@ export async function getUserBlogPosts(uid: string) {
   }
 }
 
-// Project functions
-export async function createProject(uid: string, data: any) {
+// User profile functions
+export async function getUserProfile(uid: string) {
   try {
-    const projectRef = collection(db, `users/${uid}/projects`);
-    const docRef = await addDoc(projectRef, {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    return { data: docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null, error: null };
+  } catch (error: any) {
+    return { data: null, error: error.message };
+  }
+}
+
+export async function updateUserProfile(uid: string, data: any) {
+  try {
+    const docRef = doc(db, 'users', uid);
+    await updateDoc(docRef, {
       ...data,
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    return { id: docRef.id, error: null };
+    return { error: null };
   } catch (error: any) {
-    return { id: null, error: error.message };
-  }
-}
-
-export async function getUserProjects(uid: string) {
-  try {
-    const projectRef = collection(db, `users/${uid}/projects`);
-    const querySnapshot = await getDocs(projectRef);
-    const projects = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    return { projects, error: null };
-  } catch (error: any) {
-    return { projects: [], error: error.message };
-  }
-}
-
-// File upload function
-export async function uploadFile(file: File, path: string) {
-  try {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    return { url, error: null };
-  } catch (error: any) {
-    return { url: null, error: error.message };
+    return { error: error.message };
   }
 }
