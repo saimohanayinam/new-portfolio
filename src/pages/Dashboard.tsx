@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Plus, Image as ImageIcon, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import RichTextEditor from '../components/RichTextEditor';
+import { profile, services, blogPosts, projects } from '../data/dummy';
 
 interface BlogPostForm {
   title: string;
@@ -12,6 +14,7 @@ interface BlogPostForm {
 interface ProjectForm {
   title: string;
   description: string;
+  content: string;
   image: FileList;
   tags: string;
 }
@@ -38,16 +41,60 @@ interface ServicesForm {
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'profile' | 'posts' | 'projects' | 'services'>('profile');
-  const { register: registerBlog, handleSubmit: handleBlogSubmit, reset: resetBlog } = useForm<BlogPostForm>();
-  const { register: registerProject, handleSubmit: handleProjectSubmit, reset: resetProject } = useForm<ProjectForm>();
-  const { register: registerProfile, handleSubmit: handleProfileSubmit } = useForm<ProfileForm>();
-  const { register: registerServices, handleSubmit: handleServicesSubmit } = useForm<ServicesForm>();
+  const [blogContent, setBlogContent] = useState('');
+  const [projectContent, setProjectContent] = useState('');
+  
+  const { register: registerBlog, handleSubmit: handleBlogSubmit, reset: resetBlog } = useForm<BlogPostForm>({
+    defaultValues: {
+      title: '',
+      content: ''
+    }
+  });
+  
+  const { register: registerProject, handleSubmit: handleProjectSubmit, reset: resetProject } = useForm<ProjectForm>({
+    defaultValues: {
+      title: '',
+      description: '',
+      content: '',
+      tags: ''
+    }
+  });
+  
+  const { register: registerProfile, handleSubmit: handleProfileSubmit } = useForm<ProfileForm>({
+    defaultValues: {
+      name: profile.name,
+      title: profile.title,
+      bio: profile.bio,
+      email: profile.email,
+      phone: profile.phone,
+      location: profile.location,
+      github: profile.social.github,
+      linkedin: profile.social.linkedin,
+      twitter: profile.social.twitter
+    }
+  });
+  
+  const { register: registerServices, handleSubmit: handleServicesSubmit } = useForm<ServicesForm>({
+    defaultValues: {
+      services: services
+    }
+  });
 
   const onBlogSubmit = async (data: BlogPostForm) => {
     try {
-      console.log('Blog post data:', data);
+      const newPost = {
+        ...data,
+        content: blogContent,
+        date: new Date().toISOString(),
+        author: {
+          name: profile.name,
+          avatar: profile.avatar
+        }
+      };
+      console.log('New blog post:', newPost);
       toast.success('Blog post created successfully!');
       resetBlog();
+      setBlogContent('');
     } catch (error) {
       toast.error('Failed to create blog post');
     }
@@ -55,9 +102,15 @@ export default function Dashboard() {
 
   const onProjectSubmit = async (data: ProjectForm) => {
     try {
-      console.log('Project data:', data);
+      const newProject = {
+        ...data,
+        content: projectContent,
+        tags: data.tags.split(',').map(tag => tag.trim())
+      };
+      console.log('New project:', newProject);
       toast.success('Project created successfully!');
       resetProject();
+      setProjectContent('');
     } catch (error) {
       toast.error('Failed to create project');
     }
@@ -252,10 +305,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="btn-primary w-full"
-            >
+            <button type="submit" className="btn-primary w-full">
               <Save className="w-5 h-5 mr-2" />
               Save Profile
             </button>
@@ -266,24 +316,26 @@ export default function Dashboard() {
           <form onSubmit={handleServicesSubmit(onServicesSubmit)} className="space-y-6">
             <h2 className="text-2xl font-bold mb-6 dark:text-white">Services</h2>
             
-            {[1, 2, 3, 4, 5, 6].map((index) => (
+            {services.map((service, index) => (
               <div key={index} className="grid grid-cols-1 gap-4 p-4 border dark:border-gray-700 rounded-lg">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Service {index} Title
+                    Service {index + 1} Title
                   </label>
                   <input
                     type="text"
-                    {...registerServices(`services.${index - 1}.title` as any)}
+                    {...registerServices(`services.${index}.title` as any)}
+                    defaultValue={service.title}
                     className="input dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Service {index} Description
+                    Service {index + 1} Description
                   </label>
                   <textarea
-                    {...registerServices(`services.${index - 1}.description` as any)}
+                    {...registerServices(`services.${index}.description` as any)}
+                    defaultValue={service.description}
                     rows={2}
                     className="input dark:bg-gray-700 dark:text-white"
                   />
@@ -291,10 +343,7 @@ export default function Dashboard() {
               </div>
             ))}
 
-            <button
-              type="submit"
-              className="btn-primary w-full"
-            >
+            <button type="submit" className="btn-primary w-full">
               <Save className="w-5 h-5 mr-2" />
               Save Services
             </button>
@@ -320,11 +369,7 @@ export default function Dashboard() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Content
               </label>
-              <textarea
-                {...registerBlog('content', { required: true })}
-                rows={6}
-                className="input dark:bg-gray-700 dark:text-white"
-              />
+              <RichTextEditor content={blogContent} onChange={setBlogContent} />
             </div>
 
             <div>
@@ -345,10 +390,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="btn-primary w-full"
-            >
+            <button type="submit" className="btn-primary w-full">
               <Plus className="w-5 h-5 mr-2" />
               Create Post
             </button>
@@ -372,13 +414,20 @@ export default function Dashboard() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Description
+                Short Description
               </label>
-              <textarea
+              <input
+                type="text"
                 {...registerProject('description', { required: true })}
-                rows={4}
                 className="input dark:bg-gray-700 dark:text-white"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Detailed Description
+              </label>
+              <RichTextEditor content={projectContent} onChange={setProjectContent} />
             </div>
 
             <div>
@@ -411,10 +460,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="btn-primary w-full"
-            >
+            <button type="submit" className="btn-primary w-full">
               <Plus className="w-5 h-5 mr-2" />
               Create Project
             </button>

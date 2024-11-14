@@ -2,79 +2,11 @@ import { useParams } from 'react-router-dom';
 import { ExternalLink, Github } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import SectionHeading from '../components/SectionHeading';
-
-const projects = {
-  '1': {
-    title: "E-commerce Platform",
-    description: "A full-featured online store with real-time inventory management",
-    longDescription: "A comprehensive e-commerce solution built with modern technologies. This platform provides real-time inventory tracking, secure payment processing, and an intuitive admin dashboard.",
-    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97",
-    tags: ["React", "Node.js", "MongoDB"],
-    features: [
-      "Real-time inventory management",
-      "Secure payment processing",
-      "Admin dashboard",
-      "Order tracking",
-      "Customer reviews",
-      "Product recommendations"
-    ],
-    technologies: [
-      "React",
-      "Node.js",
-      "MongoDB",
-      "Express",
-      "Stripe",
-      "Redis"
-    ],
-    links: {
-      github: "https://github.com",
-      live: "https://demo.com"
-    },
-    screenshots: [
-      "https://images.unsplash.com/photo-1517694712202-14dd9538aa97",
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f",
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71",
-      "https://images.unsplash.com/photo-1627398242454-45a1465c2479"
-    ]
-  },
-  '2': {
-    title: "Social Media Dashboard",
-    description: "Analytics dashboard for social media management",
-    longDescription: "A powerful analytics dashboard that helps businesses track and analyze their social media performance across multiple platforms.",
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f",
-    tags: ["Vue.js", "Firebase", "Tailwind"],
-    features: [
-      "Multi-platform analytics",
-      "Real-time data updates",
-      "Custom report generation",
-      "Automated scheduling",
-      "Engagement tracking",
-      "Performance insights"
-    ],
-    technologies: [
-      "Vue.js",
-      "Firebase",
-      "Tailwind CSS",
-      "Chart.js",
-      "Node.js",
-      "WebSocket"
-    ],
-    links: {
-      github: "https://github.com",
-      live: "https://demo.com"
-    },
-    screenshots: [
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f",
-      "https://images.unsplash.com/photo-1517694712202-14dd9538aa97",
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71",
-      "https://images.unsplash.com/photo-1627398242454-45a1465c2479"
-    ]
-  }
-};
+import { projects } from '../data/dummy';
 
 export default function ProjectDetails() {
   const { id } = useParams();
-  const project = id ? projects[id as keyof typeof projects] : null;
+  const project = projects.find(p => p.id.toString() === id);
 
   if (!project) {
     return (
