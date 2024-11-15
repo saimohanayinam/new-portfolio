@@ -1,9 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, setDoc, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, setDoc, query, orderBy, where } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// Initialize Firebase with environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,14 +17,77 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Profile image upload function with proper error handling
+// Helper function to generate a unique username
+async function generateUniqueUsername(baseName: string): Promise<string> {
+  const sanitizedName = baseName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  let username = sanitizedName;
+  let counter = 1;
+  
+  while (true) {
+    const usernameRef = collection(db, 'usernames');
+    const q = query(usernameRef, where('username', '==', username));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return username;
+    }
+    
+    username = `${sanitizedName}${counter}`;
+    counter++;
+  }
+}
+
+// Check if username is available
+export async function checkUsernameAvailability(username: string): Promise<boolean> {
+  const usernameRef = collection(db, 'usernames');
+  const q = query(usernameRef, where('username', '==', username.toLowerCase()));
+  const snapshot = await getDocs(q);
+  return snapshot.empty;
+}
+
+// Update username
+export async function updateUsername(userId: string, newUsername: string) {
+  const isAvailable = await checkUsernameAvailability(newUsername);
+  if (!isAvailable) {
+    throw new Error('Username is already taken');
+  }
+
+  const userDoc = await getDoc(doc(db, 'users', userId));
+  const oldUsername = userDoc.data()?.username;
+
+  // Start a batch write
+  const batch = db.batch();
+
+  // Update user document
+  const userRef = doc(db, 'users', userId);
+  batch.update(userRef, { 
+    username: newUsername.toLowerCase(),
+    updatedAt: serverTimestamp()
+  });
+
+  // Delete old username document if it exists
+  if (oldUsername) {
+    const oldUsernameRef = doc(db, 'usernames', oldUsername);
+    batch.delete(oldUsernameRef);
+  }
+
+  // Create new username document
+  const newUsernameRef = doc(db, 'usernames', newUsername.toLowerCase());
+  batch.set(newUsernameRef, {
+    userId,
+    username: newUsername.toLowerCase(),
+    createdAt: serverTimestamp()
+  });
+
+  await batch.commit();
+}
+
 export async function uploadProfileImage(file: File, userId: string) {
   if (!auth.currentUser) {
     throw new Error('User must be authenticated to upload images');
   }
 
   try {
-    // Create a reference to the user's profile images
     const storageRef = ref(storage, `users/${userId}/profile/${file.name}`);
     await uploadBytes(storageRef, file);
     const downloadUrl = await getDownloadURL(storageRef);
@@ -39,7 +101,6 @@ export async function uploadProfileImage(file: File, userId: string) {
   }
 }
 
-// Auth functions
 export async function loginUser(email: string, password: string) {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -52,13 +113,24 @@ export async function loginUser(email: string, password: string) {
 export async function registerUser(email: string, password: string, name: string) {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const username = await generateUniqueUsername(name);
     
+    // Create user document
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       name,
       email,
+      username,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+      isPublic: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
+    });
+
+    // Create username document
+    await setDoc(doc(db, 'usernames', username), {
+      userId: userCredential.user.uid,
+      username,
+      createdAt: serverTimestamp()
     });
 
     return { user: userCredential.user, error: null };
@@ -76,7 +148,41 @@ export async function logoutUser() {
   }
 }
 
-// User profile functions
+export async function getUserByUsername(username: string) {
+  try {
+    const usernameRef = collection(db, 'usernames');
+    const q = query(usernameRef, where('username', '==', username.toLowerCase()));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return { data: null, error: 'User not found' };
+    }
+
+    const usernameDoc = snapshot.docs[0];
+    const userId = usernameDoc.data().userId;
+    const userDoc = await getDoc(doc(db, 'users', userId));
+
+    if (!userDoc.exists()) {
+      return { data: null, error: 'User not found' };
+    }
+
+    const userData = userDoc.data();
+    if (!userData.isPublic) {
+      return { data: null, error: 'This profile is private' };
+    }
+
+    return { 
+      data: { 
+        id: userDoc.id,
+        ...userData
+      }, 
+      error: null 
+    };
+  } catch (error: any) {
+    return { data: null, error: error.message };
+  }
+}
+
 export async function getUserProfile(uid: string) {
   try {
     const docRef = doc(db, 'users', uid);

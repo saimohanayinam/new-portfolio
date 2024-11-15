@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import ProjectDetails from './pages/ProjectDetails';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import UserProfile from './pages/UserProfile';
 import AuthGuard from './components/AuthGuard';
 import { useThemeStore } from './lib/store';
 
@@ -35,6 +36,7 @@ function App() {
             <Route path="/project/:id" element={<ProjectDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/:username" element={<UserProfile />} />
             <Route
               path="/dashboard/*"
               element={
