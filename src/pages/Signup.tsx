@@ -28,7 +28,7 @@ export default function Signup() {
       if (user) {
         setUser(user);
         toast.success('Account created successfully!');
-        navigate('/dashboard');
+        navigate('/theme-selection'); // Redirect to theme selection after signup
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to create account');

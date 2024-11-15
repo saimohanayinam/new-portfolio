@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { LogIn, Mail, Lock } from 'lucide-react';
-import { loginUser } from '../lib/firebase';
+import { loginUser, getUserTheme } from '../lib/firebase';
 import { useAuthStore } from '../lib/store';
 
 interface LoginForm {
@@ -24,8 +24,11 @@ export default function Login() {
       if (error) throw new Error(error);
       if (user) {
         setUser(user);
+        // Check if user has selected a theme
+        const theme = await getUserTheme(user.uid);
         toast.success('Logged in successfully!');
-        navigate('/dashboard');
+        // Redirect based on theme selection
+        navigate(theme ? '/dashboard' : '/theme-selection');
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to log in');

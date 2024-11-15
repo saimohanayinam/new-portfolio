@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
@@ -10,11 +10,14 @@ import ProjectDetails from './pages/ProjectDetails';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import UserProfile from './pages/UserProfile';
+import Landing from './pages/Landing';
+import ThemeSelection from './pages/ThemeSelection';
 import AuthGuard from './components/AuthGuard';
-import { useThemeStore } from './lib/store';
+import { useThemeStore, useAuthStore } from './lib/store';
 
 function App() {
   const { theme } = useThemeStore();
+  const user = useAuthStore(state => state.user);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -28,15 +31,22 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
         <Navbar />
-        <main className="container mx-auto px-4 py-8">
+        <main>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:id" element={<BlogPost />} />
-            <Route path="/project/:id" element={<ProjectDetails />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/:username" element={<UserProfile />} />
+            {/* Public routes */}
+            <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
+            <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+            <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />
+            
+            {/* Protected routes */}
+            <Route
+              path="/theme-selection"
+              element={
+                <AuthGuard>
+                  <ThemeSelection />
+                </AuthGuard>
+              }
+            />
             <Route
               path="/dashboard/*"
               element={
@@ -45,6 +55,12 @@ function App() {
                 </AuthGuard>
               }
             />
+            
+            {/* Portfolio routes */}
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:id" element={<BlogPost />} />
+            <Route path="/project/:id" element={<ProjectDetails />} />
+            <Route path="/:username" element={<UserProfile />} />
           </Routes>
         </main>
         <Toaster position="top-right" />

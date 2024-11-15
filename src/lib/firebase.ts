@@ -37,6 +37,16 @@ async function generateUniqueUsername(baseName: string): Promise<string> {
   }
 }
 
+export async function getUserTheme(userId: string) {
+  try {
+    const themeDoc = await getDoc(doc(db, `users/${userId}/settings/theme`));
+    return themeDoc.exists() ? themeDoc.data().themeId : null;
+  } catch (error) {
+    console.error('Error getting user theme:', error);
+    return null;
+  }
+}
+
 // Check if username is available
 export async function checkUsernameAvailability(username: string): Promise<boolean> {
   const usernameRef = collection(db, 'usernames');
