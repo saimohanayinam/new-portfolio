@@ -54,6 +54,30 @@ export async function logoutUser() {
   }
 }
 
+// User profile functions
+export async function getUserProfile(uid: string) {
+  try {
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    return { data: docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null, error: null };
+  } catch (error: any) {
+    return { data: null, error: error.message };
+  }
+}
+
+export async function updateUserProfile(uid: string, data: any) {
+  try {
+    const docRef = doc(db, 'users', uid);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
 // Blog functions
 export async function createBlogPost(uid: string, data: any) {
   try {
@@ -107,26 +131,55 @@ export async function getBlogPosts(uid: string) {
   }
 }
 
-// User profile functions
-export async function getUserProfile(uid: string) {
+// Project functions
+export async function createProject(uid: string, data: any) {
   try {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-    return { data: docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null, error: null };
+    const projectRef = collection(db, `users/${uid}/projects`);
+    const docRef = await addDoc(projectRef, {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return { id: docRef.id, error: null };
   } catch (error: any) {
-    return { data: null, error: error.message };
+    return { id: null, error: error.message };
   }
 }
 
-export async function updateUserProfile(uid: string, data: any) {
+export async function updateProject(uid: string, projectId: string, data: any) {
   try {
-    const docRef = doc(db, 'users', uid);
-    await updateDoc(docRef, {
+    const projectRef = doc(db, `users/${uid}/projects`, projectId);
+    await updateDoc(projectRef, {
       ...data,
       updatedAt: serverTimestamp()
     });
     return { error: null };
   } catch (error: any) {
     return { error: error.message };
+  }
+}
+
+export async function deleteProject(uid: string, projectId: string) {
+  try {
+    const projectRef = doc(db, `users/${uid}/projects`, projectId);
+    await deleteDoc(projectRef);
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function getProjects(uid: string) {
+  try {
+    const projectRef = collection(db, `users/${uid}/projects`);
+    const q = query(projectRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const projects = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    return { projects, error: null };
+  } catch (error: any) {
+    return { projects: [], error: error.message };
   }
 }
