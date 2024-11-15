@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Save } from 'lucide-react';
 import { UserProfile } from '../types';
+import { toast } from 'sonner';
 
 interface ProfileFormProps {
   initialData?: Partial<UserProfile>;
@@ -8,13 +10,26 @@ interface ProfileFormProps {
   isLoading?: boolean;
 }
 
-export default function ProfileForm({ initialData, onSubmit, isLoading }: ProfileFormProps) {
+export default function ProfileForm({ initialData, onSubmit, isLoading = false }: ProfileFormProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<UserProfile>({
     defaultValues: initialData
   });
 
+  const handleFormSubmit = async (data: UserProfile) => {
+    setIsSaving(true);
+    try {
+      await onSubmit(data);
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -221,11 +236,11 @@ export default function ProfileForm({ initialData, onSubmit, isLoading }: Profil
 
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || isSaving}
         className="btn-primary w-full"
       >
         <Save className="w-5 h-5 mr-2" />
-        {isLoading ? 'Saving...' : 'Save Profile'}
+        {isSaving ? 'Saving...' : 'Save Profile'}
       </button>
     </form>
   );

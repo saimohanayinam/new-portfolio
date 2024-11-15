@@ -1,49 +1,57 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../lib/store';
-import { getUserProfile } from '../lib/firebase';
 import { toast } from 'sonner';
 import ServiceManager from '../components/dashboard/ServiceManager';
 import BlogManager from '../components/dashboard/BlogManager';
 import ProjectManager from '../components/dashboard/ProjectManager';
 import ProfileForm from '../components/ProfileForm';
+import { getProfile, createProfile, updateProfile } from '../lib/services/profile';
+import { Loader } from 'lucide-react';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'profile' | 'posts' | 'projects' | 'services'>('profile');
   const [loading, setLoading] = useState(true);
-  const [services, setServices] = useState([]);
-  const [posts, setPosts] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [profile, setProfile] = useState(null);
   const user = useAuthStore(state => state.user);
 
   useEffect(() => {
-    async function loadUserData() {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        const { data, error } = await getUserProfile(user.uid);
-        if (error) throw new Error(error);
-        if (data) {
-          setServices(data.services || []);
-          setPosts(data.blogPosts || []);
-          setProjects(data.projects || []);
-          setProfile(data);
-        }
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to load user data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadUserData();
+    loadProfile();
   }, [user]);
+
+  const loadProfile = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await getProfile(user.uid);
+      if (error) throw new Error(error);
+      setProfile(data);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProfileSubmit = async (data: any) => {
+    if (!user) return;
+
+    try {
+      if (profile) {
+        await updateProfile(user.uid, data);
+      } else {
+        await createProfile(user.uid, data);
+      }
+      await loadProfile();
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to update profile');
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <Loader className="w-12 h-12 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -99,39 +107,24 @@ export default function Dashboard() {
         {activeTab === 'profile' && (
           <ProfileForm
             initialData={profile}
-            onSubmit={async (data) => {
-              try {
-                await updateUserProfile(user!.uid, data);
-                toast.success('Profile updated successfully!');
-              } catch (error: any) {
-                toast.error(error.message || 'Failed to update profile');
-              }
-            }}
+            onSubmit={handleProfileSubmit}
           />
         )}
 
         {activeTab === 'services' && (
-          <ServiceManager
-            services={services}
-            setServices={setServices}
-            userId={user!.uid}
-          />
+          <ServiceManager userId={user!.uid} />
         )}
 
         {activeTab === 'posts' && (
           <BlogManager
-            posts={posts}
-            setPosts={setPosts}
+            posts={[]}
+            setPosts={() => {}}
             userId={user!.uid}
           />
         )}
 
         {activeTab === 'projects' && (
-          <ProjectManager
-            projects={projects}
-            setProjects={setProjects}
-            userId={user!.uid}
-          />
+          <ProjectManager userId={user!.uid} />
         )}
       </div>
     </div>
