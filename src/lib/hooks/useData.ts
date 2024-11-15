@@ -4,22 +4,6 @@ import { collection, getDocs, doc, getDoc, query, orderBy, limit, where } from '
 import { profile as dummyProfile, projects as dummyProjects, blogPosts as dummyBlogPosts, services as dummyServices } from '../../data/dummy';
 import { toast } from 'sonner';
 
-// Helper function to get public user ID
-async function getPublicUserId() {
-  try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('isPublic', '==', true), limit(1));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      return snapshot.docs[0].id;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting public user:', error);
-    return null;
-  }
-}
-
 export function useProfile(userId?: string | null) {
   const [profile, setProfile] = useState(dummyProfile);
   const [loading, setLoading] = useState(true);
@@ -27,23 +11,24 @@ export function useProfile(userId?: string | null) {
   useEffect(() => {
     async function fetchProfile() {
       try {
-        let targetUserId = userId;
-        if (!targetUserId) {
-          // If no userId provided, try to get the public user
-          targetUserId = await getPublicUserId();
+        if (!userId) {
+          setProfile(dummyProfile);
+          setLoading(false);
+          return;
         }
 
-        if (targetUserId) {
-          const profileRef = doc(db, `users/${targetUserId}/profile/info`);
-          const docSnap = await getDoc(profileRef);
-          
-          if (docSnap.exists()) {
-            setProfile({ ...docSnap.data(), id: docSnap.id });
-          }
+        const profileRef = doc(db, `users/${userId}/profile/info`);
+        const docSnap = await getDoc(profileRef);
+        
+        if (docSnap.exists()) {
+          setProfile({ ...docSnap.data(), id: docSnap.id });
+        } else {
+          setProfile(dummyProfile);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast.error('Failed to load profile data');
+        setProfile(dummyProfile);
       } finally {
         setLoading(false);
       }
@@ -62,27 +47,29 @@ export function useServices(userId?: string | null) {
   useEffect(() => {
     async function fetchServices() {
       try {
-        let targetUserId = userId;
-        if (!targetUserId) {
-          targetUserId = await getPublicUserId();
+        if (!userId) {
+          setServices(dummyServices);
+          setLoading(false);
+          return;
         }
 
-        if (targetUserId) {
-          const servicesRef = collection(db, `users/${targetUserId}/services`);
-          const q = query(servicesRef, orderBy('createdAt', 'desc'));
-          const snapshot = await getDocs(q);
-          
-          if (!snapshot.empty) {
-            const servicesData = snapshot.docs.map(doc => ({
-              ...doc.data(),
-              id: doc.id
-            }));
-            setServices(servicesData);
-          }
+        const servicesRef = collection(db, `users/${userId}/services`);
+        const q = query(servicesRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const servicesData = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id
+          }));
+          setServices(servicesData);
+        } else {
+          setServices(dummyServices);
         }
       } catch (error) {
         console.error('Error fetching services:', error);
         toast.error('Failed to load services data');
+        setServices(dummyServices);
       } finally {
         setLoading(false);
       }
@@ -101,27 +88,29 @@ export function useProjects(userId?: string | null) {
   useEffect(() => {
     async function fetchProjects() {
       try {
-        let targetUserId = userId;
-        if (!targetUserId) {
-          targetUserId = await getPublicUserId();
+        if (!userId) {
+          setProjects(dummyProjects);
+          setLoading(false);
+          return;
         }
 
-        if (targetUserId) {
-          const projectsRef = collection(db, `users/${targetUserId}/projects`);
-          const q = query(projectsRef, orderBy('createdAt', 'desc'));
-          const snapshot = await getDocs(q);
-          
-          if (!snapshot.empty) {
-            const projectsData = snapshot.docs.map(doc => ({
-              ...doc.data(),
-              id: doc.id
-            }));
-            setProjects(projectsData);
-          }
+        const projectsRef = collection(db, `users/${userId}/projects`);
+        const q = query(projectsRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const projectsData = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id
+          }));
+          setProjects(projectsData);
+        } else {
+          setProjects(dummyProjects);
         }
       } catch (error) {
         console.error('Error fetching projects:', error);
         toast.error('Failed to load projects data');
+        setProjects(dummyProjects);
       } finally {
         setLoading(false);
       }
@@ -140,27 +129,29 @@ export function useBlogPosts(userId?: string | null) {
   useEffect(() => {
     async function fetchPosts() {
       try {
-        let targetUserId = userId;
-        if (!targetUserId) {
-          targetUserId = await getPublicUserId();
+        if (!userId) {
+          setPosts(dummyBlogPosts);
+          setLoading(false);
+          return;
         }
 
-        if (targetUserId) {
-          const postsRef = collection(db, `users/${targetUserId}/blogs`);
-          const q = query(postsRef, orderBy('createdAt', 'desc'));
-          const snapshot = await getDocs(q);
-          
-          if (!snapshot.empty) {
-            const postsData = snapshot.docs.map(doc => ({
-              ...doc.data(),
-              id: doc.id
-            }));
-            setPosts(postsData);
-          }
+        const postsRef = collection(db, `users/${userId}/blogs`);
+        const q = query(postsRef, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const postsData = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id
+          }));
+          setPosts(postsData);
+        } else {
+          setPosts(dummyBlogPosts);
         }
       } catch (error) {
         console.error('Error fetching blog posts:', error);
         toast.error('Failed to load blog posts');
+        setPosts(dummyBlogPosts);
       } finally {
         setLoading(false);
       }
@@ -179,27 +170,27 @@ export function useSingleBlogPost(userId?: string | null, postId?: string) {
   useEffect(() => {
     async function fetchPost() {
       try {
-        let targetUserId = userId;
-        if (!targetUserId) {
-          targetUserId = await getPublicUserId();
+        if (!userId || !postId) {
+          const dummyPost = dummyBlogPosts.find(p => p.id === postId);
+          setPost(dummyPost || null);
+          setLoading(false);
+          return;
         }
 
-        if (targetUserId && postId) {
-          const postRef = doc(db, `users/${targetUserId}/blogs/${postId}`);
-          const docSnap = await getDoc(postRef);
-          
-          if (docSnap.exists()) {
-            setPost({ ...docSnap.data(), id: docSnap.id });
-          } else {
-            setPost(dummyBlogPosts.find(p => p.id === postId) || null);
-          }
-        } else if (postId) {
-          setPost(dummyBlogPosts.find(p => p.id === postId) || null);
+        const postRef = doc(db, `users/${userId}/blogs/${postId}`);
+        const docSnap = await getDoc(postRef);
+        
+        if (docSnap.exists()) {
+          setPost({ ...docSnap.data(), id: docSnap.id });
+        } else {
+          const dummyPost = dummyBlogPosts.find(p => p.id === postId);
+          setPost(dummyPost || null);
         }
       } catch (error) {
         console.error('Error fetching blog post:', error);
         toast.error('Failed to load blog post');
-        setPost(dummyBlogPosts.find(p => p.id === postId) || null);
+        const dummyPost = dummyBlogPosts.find(p => p.id === postId);
+        setPost(dummyPost || null);
       } finally {
         setLoading(false);
       }
@@ -218,27 +209,27 @@ export function useSingleProject(userId?: string | null, projectId?: string) {
   useEffect(() => {
     async function fetchProject() {
       try {
-        let targetUserId = userId;
-        if (!targetUserId) {
-          targetUserId = await getPublicUserId();
+        if (!userId || !projectId) {
+          const dummyProject = dummyProjects.find(p => p.id.toString() === projectId);
+          setProject(dummyProject || null);
+          setLoading(false);
+          return;
         }
 
-        if (targetUserId && projectId) {
-          const projectRef = doc(db, `users/${targetUserId}/projects/${projectId}`);
-          const docSnap = await getDoc(projectRef);
-          
-          if (docSnap.exists()) {
-            setProject({ ...docSnap.data(), id: docSnap.id });
-          } else {
-            setProject(dummyProjects.find(p => p.id.toString() === projectId) || null);
-          }
-        } else if (projectId) {
-          setProject(dummyProjects.find(p => p.id.toString() === projectId) || null);
+        const projectRef = doc(db, `users/${userId}/projects/${projectId}`);
+        const docSnap = await getDoc(projectRef);
+        
+        if (docSnap.exists()) {
+          setProject({ ...docSnap.data(), id: docSnap.id });
+        } else {
+          const dummyProject = dummyProjects.find(p => p.id.toString() === projectId);
+          setProject(dummyProject || null);
         }
       } catch (error) {
         console.error('Error fetching project:', error);
         toast.error('Failed to load project');
-        setProject(dummyProjects.find(p => p.id.toString() === projectId) || null);
+        const dummyProject = dummyProjects.find(p => p.id.toString() === projectId);
+        setProject(dummyProject || null);
       } finally {
         setLoading(false);
       }
