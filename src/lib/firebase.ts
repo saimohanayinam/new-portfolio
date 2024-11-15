@@ -3,6 +3,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, si
 import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, setDoc, query, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+// Initialize Firebase with environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -16,6 +17,27 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Profile image upload function with proper error handling
+export async function uploadProfileImage(file: File, userId: string) {
+  if (!auth.currentUser) {
+    throw new Error('User must be authenticated to upload images');
+  }
+
+  try {
+    // Create a reference to the user's profile images
+    const storageRef = ref(storage, `users/${userId}/profile/${file.name}`);
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
+    return downloadUrl;
+  } catch (error: any) {
+    console.error('Upload error:', error);
+    if (error.code === 'storage/unauthorized') {
+      throw new Error('Permission denied. Please check if you are logged in.');
+    }
+    throw new Error('Failed to upload image. Please try again.');
+  }
+}
 
 // Auth functions
 export async function loginUser(email: string, password: string) {

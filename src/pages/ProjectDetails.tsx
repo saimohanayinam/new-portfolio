@@ -53,7 +53,7 @@ export default function ProjectDetails() {
             </h1>
 
             <div className="flex flex-wrap gap-2 mb-6">
-              {project.tags.map(tag => (
+              {project.tags?.map(tag => (
                 <span 
                   key={tag}
                   className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 text-sm rounded-full font-medium"
@@ -63,73 +63,81 @@ export default function ProjectDetails() {
               ))}
             </div>
 
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">{project.longDescription}</p>
+            <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">{project.longDescription || project.description}</p>
 
             <div className="flex gap-4">
-              <a
-                href={project.links.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary"
-              >
-                <Github className="w-5 h-5 mr-2" />
-                View Source
-              </a>
-              <a
-                href={project.links.live}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-              >
-                <ExternalLink className="w-5 h-5 mr-2" />
-                Live Demo
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <SectionHeading title="Key Features" className="mb-6" />
-            <ul className="space-y-3">
-              {project.features.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-600" />
-                  <span className="text-gray-600 dark:text-gray-300">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <SectionHeading title="Technologies" className="mb-6" />
-            <div className="flex flex-wrap gap-2">
-              {project.technologies.map((tech, index) => (
-                <span 
-                  key={index}
-                  className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full"
+              {project.links?.github && (
+                <a
+                  href={project.links.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
                 >
-                  {tech}
-                </span>
-              ))}
+                  <Github className="w-5 h-5 mr-2" />
+                  View Source
+                </a>
+              )}
+              {project.links?.live && (
+                <a
+                  href={project.links.live}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                >
+                  <ExternalLink className="w-5 h-5 mr-2" />
+                  Live Demo
+                </a>
+              )}
             </div>
           </div>
         </div>
 
-        <div>
-          <SectionHeading title="Screenshots" className="mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {project.screenshots.map((screenshot, index) => (
-              <div key={index} className="rounded-xl overflow-hidden shadow-sm">
-                <img
-                  src={screenshot}
-                  alt={`Screenshot ${index + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                />
+        {project.features && (
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+              <SectionHeading title="Key Features" className="mb-6" />
+              <ul className="space-y-3">
+                {project.features.map((feature, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-600" />
+                    <span className="text-gray-600 dark:text-gray-300">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+              <SectionHeading title="Technologies" className="mb-6" />
+              <div className="flex flex-wrap gap-2">
+                {project.technologies?.map((tech, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full"
+                  >
+                    {tech}
+                  </span>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {project.screenshots && (
+          <div>
+            <SectionHeading title="Screenshots" className="mb-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {project.screenshots.map((screenshot, index) => (
+                <div key={index} className="rounded-xl overflow-hidden shadow-sm">
+                  <img
+                    src={screenshot}
+                    alt={`Screenshot ${index + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

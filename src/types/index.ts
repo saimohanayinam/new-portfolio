@@ -8,6 +8,7 @@ export interface UserProfile {
   location: string;
   company: string;
   website: string;
+  avatar?: string;
   skills: string[];
   education: Education[];
   experience: Experience[];

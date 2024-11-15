@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Save } from 'lucide-react';
 import { UserProfile } from '../types';
 import { toast } from 'sonner';
+import ProfileImageUpload from './profile/ProfileImageUpload';
 
 interface ProfileFormProps {
   initialData?: Partial<UserProfile>;
@@ -12,9 +13,11 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ initialData, onSubmit, isLoading = false }: ProfileFormProps) {
   const [isSaving, setIsSaving] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm<UserProfile>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<UserProfile>({
     defaultValues: initialData
   });
+
+  const avatar = watch('avatar');
 
   const handleFormSubmit = async (data: UserProfile) => {
     setIsSaving(true);
@@ -29,7 +32,14 @@ export default function ProfileForm({ initialData, onSubmit, isLoading = false }
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
+      <div className="max-w-md mx-auto">
+        <ProfileImageUpload
+          value={avatar || ''}
+          onChange={(url) => setValue('avatar', url)}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
