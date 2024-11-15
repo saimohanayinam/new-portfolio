@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, serverTimestamp, setDoc, query, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -31,7 +31,6 @@ export async function registerUser(email: string, password: string, name: string
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
-    // Create user profile in Firestore
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       name,
       email,
@@ -70,10 +69,34 @@ export async function createBlogPost(uid: string, data: any) {
   }
 }
 
-export async function getUserBlogPosts(uid: string) {
+export async function updateBlogPost(uid: string, postId: string, data: any) {
+  try {
+    const postRef = doc(db, `users/${uid}/blogs`, postId);
+    await updateDoc(postRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function deleteBlogPost(uid: string, postId: string) {
+  try {
+    const postRef = doc(db, `users/${uid}/blogs`, postId);
+    await deleteDoc(postRef);
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function getBlogPosts(uid: string) {
   try {
     const blogRef = collection(db, `users/${uid}/blogs`);
-    const querySnapshot = await getDocs(blogRef);
+    const q = query(blogRef, orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
     const blogs = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash, Edit } from 'lucide-react';
+import { Plus, Trash, Edit, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import RichTextEditor from '../RichTextEditor';
-import { createBlogPost, getUserProfile } from '../../lib/firebase';
+import { createBlogPost, updateBlogPost, deleteBlogPost, getBlogPosts, getUserProfile } from '../../lib/firebase';
 import { useAuthStore } from '../../lib/store';
 import ImageUpload from '../blog/ImageUpload';
 import TagInput from '../blog/TagInput';
@@ -32,6 +32,7 @@ interface BlogManagerProps {
 
 export default function BlogManager({ posts, setPosts, userId }: BlogManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [author, setAuthor] = useState<Author>({
     name: 'Anonymous',
@@ -40,24 +41,31 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
   const user = useAuthStore(state => state.user);
 
   useEffect(() => {
-    async function loadUserProfile() {
+    async function loadData() {
       if (user) {
         try {
-          const { data, error } = await getUserProfile(user.uid);
-          if (error) throw new Error(error);
-          if (data) {
+          // Load user profile
+          const { data: profile } = await getUserProfile(user.uid);
+          if (profile) {
             setAuthor({
-              name: data.name || user.displayName || 'Anonymous',
-              avatar: data.avatar || user.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
+              name: profile.name || user.displayName || 'Anonymous',
+              avatar: profile.avatar || user.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
             });
           }
+
+          // Load blog posts
+          const { blogs, error } = await getBlogPosts(user.uid);
+          if (error) throw new Error(error);
+          setPosts(blogs);
         } catch (error: any) {
-          toast.error('Failed to load user profile');
+          toast.error('Failed to load blog posts');
+        } finally {
+          setIsFetching(false);
         }
       }
     }
-    loadUserProfile();
-  }, [user]);
+    loadData();
+  }, [user, setPosts]);
 
   const calculateReadTime = (content: string): string => {
     const wordsPerMinute = 200;
@@ -106,27 +114,58 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
         author
       };
 
-      const { id, error } = await createBlogPost(userId, postData);
-      
-      if (error) throw new Error(error);
-      
-      if (id) {
-        setPosts([...posts, { ...postData, id }]);
-        setSelectedPost(null);
-        toast.success('Blog post created successfully!');
+      if (selectedPost.id) {
+        // Update existing post
+        const { error } = await updateBlogPost(userId, selectedPost.id, postData);
+        if (error) throw new Error(error);
+        setPosts(posts.map(p => p.id === selectedPost.id ? { ...postData, id: selectedPost.id } : p));
+        toast.success('Blog post updated successfully!');
+      } else {
+        // Create new post
+        const { id, error } = await createBlogPost(userId, postData);
+        if (error) throw new Error(error);
+        if (id) {
+          setPosts([{ ...postData, id }, ...posts]);
+          toast.success('Blog post created successfully!');
+        }
       }
+      setSelectedPost(null);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create blog post');
+      toast.error(error.message || 'Failed to save blog post');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleDelete = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+      setIsLoading(true);
+      const { error } = await deleteBlogPost(userId, postId);
+      if (error) throw new Error(error);
+      setPosts(posts.filter(p => p.id !== postId));
+      toast.success('Blog post deleted successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete blog post');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isFetching) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold dark:text-white">Blog Posts</h2>
-        <button onClick={addNewPost} className="btn-primary">
+        <button onClick={addNewPost} className="btn-primary" disabled={isLoading}>
           <Plus className="w-5 h-5 mr-2" />
           New Post
         </button>
@@ -196,6 +235,7 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
             <button 
               onClick={() => setSelectedPost(null)} 
               className="btn-secondary"
+              disabled={isLoading}
             >
               Cancel
             </button>
@@ -204,7 +244,7 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
               disabled={isLoading}
               className="btn-primary"
             >
-              {isLoading ? 'Saving...' : 'Publish Post'}
+              {isLoading ? 'Saving...' : selectedPost.id ? 'Update Post' : 'Publish Post'}
             </button>
           </div>
         </div>
@@ -242,16 +282,14 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
                 <button
                   onClick={() => setSelectedPost(post)}
                   className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
+                  disabled={isLoading}
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => {
-                    if (post.id) {
-                      setPosts(posts.filter(p => p.id !== post.id));
-                    }
-                  }}
+                  onClick={() => post.id && handleDelete(post.id)}
                   className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+                  disabled={isLoading}
                 >
                   <Trash className="w-4 h-4" />
                 </button>

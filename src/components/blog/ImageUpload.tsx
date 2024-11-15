@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { Image as ImageIcon, Upload, Link as LinkIcon, X } from 'lucide-react';
+import { Image as ImageIcon, Upload, Link as LinkIcon, X, Search } from 'lucide-react';
 import { storage } from '../../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'sonner';
+import UnsplashModal from '../UnsplashModal';
 
 interface ImageUploadProps {
   value: string;
@@ -12,6 +13,7 @@ interface ImageUploadProps {
 export default function ImageUpload({ value, onChange }: ImageUploadProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [showUnsplashModal, setShowUnsplashModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +54,7 @@ export default function ImageUpload({ value, onChange }: ImageUploadProps) {
         <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4">
           <div className="flex flex-col items-center gap-2">
             <ImageIcon className="w-8 h-8 text-gray-400" />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 justify-center">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="btn-secondary"
@@ -67,6 +69,13 @@ export default function ImageUpload({ value, onChange }: ImageUploadProps) {
               >
                 <LinkIcon className="w-4 h-4 mr-2" />
                 Image URL
+              </button>
+              <button
+                onClick={() => setShowUnsplashModal(true)}
+                className="btn-secondary"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Search Unsplash
               </button>
             </div>
           </div>
@@ -100,6 +109,13 @@ export default function ImageUpload({ value, onChange }: ImageUploadProps) {
             Cancel
           </button>
         </div>
+      )}
+
+      {showUnsplashModal && (
+        <UnsplashModal
+          onClose={() => setShowUnsplashModal(false)}
+          onSelect={onChange}
+        />
       )}
     </div>
   );
