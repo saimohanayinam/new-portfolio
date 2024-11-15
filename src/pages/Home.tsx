@@ -4,7 +4,9 @@ import ProjectCard from '../components/ProjectCard';
 import NewsletterForm from '../components/NewsletterForm';
 import ContactForm from '../components/ContactForm';
 import Footer from '../components/Footer';
-import { profile, services, projects } from '../data/dummy';
+import { useProfile, useProjects, useServices } from '../lib/hooks/useData';
+import { useAuthStore } from '../lib/store';
+import { Loader } from 'lucide-react';
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -13,6 +15,19 @@ const fadeIn = {
 };
 
 export default function Home() {
+  const user = useAuthStore(state => state.user);
+  const { profile, loading: profileLoading } = useProfile(user?.uid);
+  const { projects, loading: projectsLoading } = useProjects(user?.uid);
+  const { services, loading: servicesLoading } = useServices(user?.uid);
+
+  if (profileLoading || projectsLoading || servicesLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-24">
       {/* Hero Section */}
@@ -98,22 +113,19 @@ export default function Home() {
             Services I Provide
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service, index) => {
-              const Icon = service.icon;
-              return (
-                <motion.div
-                  key={service.title}
-                  className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <h3 className="text-xl font-semibold mb-2 dark:text-white">{service.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-300">{service.description}</p>
-                </motion.div>
-              );
-            })}
+            {services.map((service, index) => (
+              <motion.div
+                key={service.id || service.title}
+                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <h3 className="text-xl font-semibold mb-2 dark:text-white">{service.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{service.description}</p>
+              </motion.div>
+            ))}
           </div>
         </motion.div>
       </section>

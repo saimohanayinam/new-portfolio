@@ -1,9 +1,21 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Loader } from 'lucide-react';
 import BackButton from '../components/BackButton';
-import { blogPosts } from '../data/dummy';
+import { useBlogPosts } from '../lib/hooks/useData';
+import { useAuthStore } from '../lib/store';
 
 export default function Blog() {
+  const user = useAuthStore(state => state.user);
+  const { posts, loading } = useBlogPosts(user?.uid);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
@@ -12,7 +24,7 @@ export default function Blog() {
       
       <h1 className="text-4xl font-bold mb-8 dark:text-white">Blog</h1>
       <div className="space-y-8">
-        {blogPosts.map((post) => (
+        {posts.map((post) => (
           <article key={post.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
             <Link to={`/blog/${post.id}`}>
               <img 

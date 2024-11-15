@@ -1,11 +1,21 @@
 import { useParams } from 'react-router-dom';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Loader } from 'lucide-react';
 import BackButton from '../components/BackButton';
-import { blogPosts } from '../data/dummy';
+import { useSingleBlogPost } from '../lib/hooks/useData';
+import { useAuthStore } from '../lib/store';
 
 export default function BlogPost() {
   const { id } = useParams();
-  const post = blogPosts.find(post => post.id === id);
+  const user = useAuthStore(state => state.user);
+  const { post, loading } = useSingleBlogPost(user?.uid, id);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (!post) {
     return (

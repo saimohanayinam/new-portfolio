@@ -1,12 +1,22 @@
 import { useParams } from 'react-router-dom';
-import { ExternalLink, Github } from 'lucide-react';
+import { ExternalLink, Github, Loader } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import SectionHeading from '../components/SectionHeading';
-import { projects } from '../data/dummy';
+import { useSingleProject } from '../lib/hooks/useData';
+import { useAuthStore } from '../lib/store';
 
 export default function ProjectDetails() {
   const { id } = useParams();
-  const project = projects.find(p => p.id.toString() === id);
+  const user = useAuthStore(state => state.user);
+  const { project, loading } = useSingleProject(user?.uid, id);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (!project) {
     return (
