@@ -12,6 +12,7 @@ import Signup from './pages/Signup';
 import UserProfile from './pages/UserProfile';
 import Landing from './pages/Landing';
 import ThemeSelection from './pages/ThemeSelection';
+import ThemePreview from './pages/ThemePreview';
 import AuthGuard from './components/AuthGuard';
 import { useThemeStore, useAuthStore } from './lib/store';
 
@@ -37,6 +38,7 @@ function App() {
             <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
             <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
             <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />
+            <Route path="/preview/:themeId" element={<ThemePreview />} />
             
             {/* Protected routes */}
             <Route
