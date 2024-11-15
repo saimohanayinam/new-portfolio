@@ -25,15 +25,14 @@ interface BlogPost {
 }
 
 interface BlogManagerProps {
-  posts: BlogPost[];
-  setPosts: (posts: BlogPost[]) => void;
   userId: string;
 }
 
-export default function BlogManager({ posts, setPosts, userId }: BlogManagerProps) {
+export default function BlogManager({ userId }: BlogManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [author, setAuthor] = useState<Author>({
     name: 'Anonymous',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
@@ -41,31 +40,32 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
   const user = useAuthStore(state => state.user);
 
   useEffect(() => {
-    async function loadData() {
-      if (user) {
-        try {
-          // Load user profile
-          const { data: profile } = await getUserProfile(user.uid);
-          if (profile) {
-            setAuthor({
-              name: profile.name || user.displayName || 'Anonymous',
-              avatar: profile.avatar || user.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-            });
-          }
-
-          // Load blog posts
-          const { blogs, error } = await getBlogPosts(user.uid);
-          if (error) throw new Error(error);
-          setPosts(blogs);
-        } catch (error: any) {
-          toast.error('Failed to load blog posts');
-        } finally {
-          setIsFetching(false);
-        }
-      }
-    }
     loadData();
-  }, [user, setPosts]);
+  }, [user]);
+
+  const loadData = async () => {
+    if (!user) return;
+    try {
+      setIsFetching(true);
+      // Load user profile
+      const { data: profile } = await getUserProfile(user.uid);
+      if (profile) {
+        setAuthor({
+          name: profile.name || user.displayName || 'Anonymous',
+          avatar: profile.avatar || user.photoURL || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
+        });
+      }
+
+      // Load blog posts
+      const { blogs, error } = await getBlogPosts(user.uid);
+      if (error) throw new Error(error);
+      setPosts(blogs);
+    } catch (error: any) {
+      toast.error('Failed to load blog posts');
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const calculateReadTime = (content: string): string => {
     const wordsPerMinute = 200;
@@ -297,6 +297,12 @@ export default function BlogManager({ posts, setPosts, userId }: BlogManagerProp
             </div>
           </div>
         ))}
+
+        {posts.length === 0 && (
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400">No blog posts yet. Click the button above to create your first post.</p>
+          </div>
+        )}
       </div>
     </div>
   );

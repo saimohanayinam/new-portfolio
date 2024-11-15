@@ -43,6 +43,7 @@ export default function Dashboard() {
         await createProfile(user.uid, data);
       }
       await loadProfile();
+      toast.success('Profile updated successfully!');
     } catch (error: any) {
       throw new Error(error.message || 'Failed to update profile');
     }
@@ -116,11 +117,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'posts' && (
-          <BlogManager
-            posts={[]}
-            setPosts={() => {}}
-            userId={user!.uid}
-          />
+          <BlogManager userId={user!.uid} />
         )}
 
         {activeTab === 'projects' && (
